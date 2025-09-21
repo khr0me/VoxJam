@@ -22,7 +22,8 @@ interface Setlist {
 }
 
 const BandManager = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [setlists, setSetlists] = useState<Setlist[]>([]);
   const [activeTab, setActiveTab] = useState("songs");
