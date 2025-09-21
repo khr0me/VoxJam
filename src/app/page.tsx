@@ -690,8 +690,8 @@ const BandManager = () => {
 
         {/* Modal Form Canzone */}
         {showSongForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full border border-gray-600">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/90 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+            <div className="bg-gray-800/95 rounded-lg shadow-2xl max-w-md w-full border border-gray-600">
               <div className="p-6">
                 <h3 className="text-lg font-bold text-white mb-4">
                   {editingSong ? "Modifica Canzone" : "Nuova Canzone"}
@@ -801,8 +801,8 @@ const BandManager = () => {
 
         {/* Modal Form Setlist */}
         {showSetlistForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-600">
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/90 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+            <div className="bg-gray-800/95 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-600">
               <div className="p-6">
                 <h3 className="text-lg font-bold text-white mb-4">
                   {editingSetlist ? "Modifica Setlist" : "Nuova Setlist"}
@@ -915,3 +915,5 @@ const BandManager = () => {
 };
 
 export default BandManager;
+
+/* created by khr0me */
