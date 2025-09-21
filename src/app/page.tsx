@@ -1,65 +1,90 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Music, List, Clock, User } from "lucide-react";
 
+import { supabase } from "@/lib/supabase";
+
+interface Song {
+  id: string;
+  title: string;
+  artist: string;
+  duration: string;
+  status: string;
+  added_by: string;
+  created_at?: string;
+}
+
+interface Setlist {
+  id: string;
+  name: string;
+  songs: string[];
+  created_at?: string;
+}
+
 const BandManager = () => {
-  const [songs, setSongs] = useState([]);
-  const [setlists, setSetlists] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [setlists, setSetlists] = useState<Setlist[]>([]);
   const [activeTab, setActiveTab] = useState("songs");
   const [showSongForm, setShowSongForm] = useState(false);
   const [showSetlistForm, setShowSetlistForm] = useState(false);
-  const [editingSong, setEditingSong] = useState(null);
-  const [editingSetlist, setEditingSetlist] = useState(null);
-  const [sortBy, setSortBy] = useState("title");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
+  const [sortBy, setSortBy] = useState<"title" | "artist" | "status">("title");
+  const [filterStatus, setFilterStatus] = useState<
+    "all" | "da_provare" | "in_prova" | "pronta"
+  >("all");
 
   // Stati del form canzone
-  const [songForm, setSongForm] = useState({
+  const [songForm, setSongForm] = useState<Omit<Song, "id">>({
     title: "",
     artist: "",
     duration: "",
     status: "da_provare",
-    addedBy: "",
+    added_by: "",
   });
 
   // Stati del form setlist
-  const [setlistForm, setSetlistForm] = useState({
+  const [setlistForm, setSetlistForm] = useState<{
+    name: string;
+    selectedSongs: string[];
+  }>({
     name: "",
     selectedSongs: [],
   });
 
-  // Carica dati al mount
+  // Fetch initial data
   useEffect(() => {
-    try {
-      const savedSongs = localStorage.getItem("bandManager_songs");
-      const savedSetlists = localStorage.getItem("bandManager_setlists");
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch songs
+        const { data: songsData, error: songsError } = await supabase
+          .from("songs")
+          .select("*")
+          .order("created_at", { ascending: true });
 
-      if (savedSongs) {
-        setSongs(JSON.parse(savedSongs));
+        if (songsError) throw songsError;
+        setSongs(songsData || []);
+
+        // Fetch setlists
+        const { data: setlistsData, error: setlistsError } = await supabase
+          .from("setlists")
+          .select("*")
+          .order("created_at", { ascending: true });
+
+        if (setlistsError) throw setlistsError;
+        setSetlists(setlistsData || []);
+      } catch (error) {
+        console.error("Error loading data:", error);
+        alert("Error loading data. Please try again.");
+      } finally {
+        setLoading(false);
       }
-      if (savedSetlists) {
-        setSetlists(JSON.parse(savedSetlists));
-      }
-    } catch (error) {
-      console.error("Errore caricamento dati:", error);
-    }
+    };
+
+    fetchData();
   }, []);
-
-  // Salva nel localStorage quando cambiano i dati
-  useEffect(() => {
-    try {
-      localStorage.setItem("bandManager_songs", JSON.stringify(songs));
-    } catch (error) {
-      console.error("Errore salvataggio canzoni:", error);
-    }
-  }, [songs]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("bandManager_setlists", JSON.stringify(setlists));
-    } catch (error) {
-      console.error("Errore salvataggio setlists:", error);
-    }
-  }, [setlists]);
 
   const resetSongForm = () => {
     setSongForm({
@@ -67,7 +92,7 @@ const BandManager = () => {
       artist: "",
       duration: "",
       status: "da_provare",
-      addedBy: "",
+      added_by: "",
     });
     setEditingSong(null);
     setShowSongForm(false);
@@ -82,54 +107,123 @@ const BandManager = () => {
     setShowSetlistForm(false);
   };
 
-  const handleSaveSong = (e) => {
+  const handleSaveSong = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
+    setLoading(true);
 
     if (!songForm.title.trim() || !songForm.artist.trim()) {
       alert("Titolo e artista sono obbligatori!");
       return;
     }
 
-    if (editingSong) {
-      setSongs(
-        songs.map((song) =>
-          song.id === editingSong.id
-            ? { ...songForm, id: editingSong.id }
-            : song
-        )
-      );
-    } else {
-      const newSong = {
-        ...songForm,
-        id: Date.now().toString(),
-      };
-      setSongs([...songs, newSong]);
-    }
+    try {
+      if (editingSong) {
+        const { error } = await supabase
+          .from("songs")
+          .update(songForm)
+          .eq("id", editingSong.id);
 
-    resetSongForm();
+        if (error) throw error;
+
+        setSongs(
+          songs.map((song) =>
+            song.id === editingSong.id
+              ? { ...songForm, id: editingSong.id }
+              : song
+          )
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("songs")
+          .insert([songForm])
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setSongs([...songs, data]);
+        }
+      }
+
+      resetSongForm();
+    } catch (error) {
+      console.error("Error saving song:", error);
+      alert("Error saving song. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditSong = (song) => {
+  const handleEditSong = (song: Song): void => {
     setSongForm(song);
     setEditingSong(song);
     setShowSongForm(true);
   };
 
-  const handleDeleteSong = (songId) => {
+  interface SetlistWithSongs extends Setlist {
+    songs: string[];
+  }
+
+  const handleDeleteSong = async (songId: string): Promise<void> => {
     if (window.confirm("Sei sicuro di voler eliminare questa canzone?")) {
-      setSongs(songs.filter((song) => song.id !== songId));
-      // Rimuovi anche dalle setlist
-      setSetlists(
-        setlists.map((setlist) => ({
+      setLoading(true);
+      try {
+        // Delete the song
+        const { error: deleteError } = await supabase
+          .from("songs")
+          .delete()
+          .eq("id", songId);
+
+        if (deleteError) throw deleteError;
+
+        // Update local state for songs
+        setSongs(songs.filter((song) => song.id !== songId));
+
+        // Update setlists to remove the deleted song
+        const updatedSetlists = setlists.map((setlist) => ({
           ...setlist,
           songs: setlist.songs.filter((id) => id !== songId),
-        }))
-      );
+        }));
+
+        // Update setlists in Supabase
+        for (const setlist of updatedSetlists) {
+          if (
+            setlist.songs !== setlists.find((s) => s.id === setlist.id)?.songs
+          ) {
+            const { error: updateError } = await supabase
+              .from("setlists")
+              .update({ songs: setlist.songs })
+              .eq("id", setlist.id);
+
+            if (updateError) throw updateError;
+          }
+        }
+
+        setSetlists(updatedSetlists);
+      } catch (error) {
+        console.error("Error deleting song:", error);
+        alert("Error deleting song. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSaveSetlist = (e) => {
+  interface SetlistFormSubmitEvent {
+    preventDefault: () => void;
+  }
+
+  interface SaveSetlistResult {
+    name: string;
+    id: string;
+    songs: string[];
+  }
+
+  const handleSaveSetlist = async (
+    e: SetlistFormSubmitEvent
+  ): Promise<void> => {
     e.preventDefault();
+    setLoading(true);
 
     if (!setlistForm.name.trim()) {
       alert("Il nome della setlist è obbligatorio!");
@@ -141,31 +235,62 @@ const BandManager = () => {
       return;
     }
 
-    if (editingSetlist) {
-      setSetlists(
-        setlists.map((setlist) =>
-          setlist.id === editingSetlist.id
-            ? {
-                ...setlistForm,
-                id: editingSetlist.id,
-                songs: setlistForm.selectedSongs,
-              }
-            : setlist
-        )
-      );
-    } else {
-      const newSetlist = {
-        name: setlistForm.name,
-        id: Date.now().toString(),
-        songs: setlistForm.selectedSongs,
-      };
-      setSetlists([...setlists, newSetlist]);
-    }
+    try {
+      if (editingSetlist) {
+        const { error } = await supabase
+          .from("setlists")
+          .update({
+            name: setlistForm.name,
+            songs: setlistForm.selectedSongs,
+          })
+          .eq("id", editingSetlist.id);
 
-    resetSetlistForm();
+        if (error) throw error;
+
+        setSetlists(
+          setlists.map((setlist) =>
+            setlist.id === editingSetlist.id
+              ? {
+                  ...setlistForm,
+                  id: editingSetlist.id,
+                  songs: setlistForm.selectedSongs,
+                }
+              : setlist
+          )
+        );
+      } else {
+        const { data, error } = await supabase
+          .from("setlists")
+          .insert([
+            {
+              name: setlistForm.name,
+              songs: setlistForm.selectedSongs,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setSetlists([...setlists, data]);
+        }
+      }
+
+      resetSetlistForm();
+    } catch (error) {
+      console.error("Error saving setlist:", error);
+      alert("Error saving setlist. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditSetlist = (setlist) => {
+  interface EditSetlistParams extends Setlist {
+    name: string;
+    songs: string[];
+  }
+
+  const handleEditSetlist = (setlist: EditSetlistParams): void => {
     setSetlistForm({
       name: setlist.name,
       selectedSongs: setlist.songs || [],
@@ -174,13 +299,33 @@ const BandManager = () => {
     setShowSetlistForm(true);
   };
 
-  const handleDeleteSetlist = (setlistId) => {
+  interface DeleteSetlistParams {
+    setlistId: string;
+  }
+
+  const handleDeleteSetlist = async ({
+    setlistId,
+  }: DeleteSetlistParams): Promise<void> => {
     if (window.confirm("Sei sicuro di voler eliminare questa setlist?")) {
-      setSetlists(setlists.filter((setlist) => setlist.id !== setlistId));
+      setLoading(true);
+      try {
+        const { error } = await supabase
+          .from("setlists")
+          .delete()
+          .eq("id", setlistId);
+
+        if (error) throw error;
+        setSetlists(setlists.filter((setlist) => setlist.id !== setlistId));
+      } catch (error) {
+        console.error("Error deleting setlist:", error);
+        alert("Error deleting setlist. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: Song["status"]) => {
     switch (status) {
       case "da_provare":
         return "bg-red-900 text-red-300 border border-red-700";
@@ -193,7 +338,7 @@ const BandManager = () => {
     }
   };
 
-  const getStatusText = (status) => {
+  const getStatusText = (status: Song["status"]) => {
     switch (status) {
       case "da_provare":
         return "Da provare";
@@ -215,7 +360,7 @@ const BandManager = () => {
       return 0;
     });
 
-  const calculateSetlistDuration = (songIds) => {
+  const calculateSetlistDuration = (songIds: string[]): string => {
     if (!Array.isArray(songIds) || songIds.length === 0) return "0:00";
 
     const totalMinutes = songIds.reduce((total, songId) => {
@@ -236,7 +381,7 @@ const BandManager = () => {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const toggleSongInSetlist = (songId) => {
+  const toggleSongInSetlist = (songId: string): void => {
     if (setlistForm.selectedSongs.includes(songId)) {
       setSetlistForm({
         ...setlistForm,
@@ -258,6 +403,16 @@ const BandManager = () => {
           <h1 className="text-4xl font-bold text-white mb-2">🎵 Vox Jam</h1>
           <p className="text-gray-300">Gestisci le tue canzoni e setlist</p>
         </div>
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+              <p className="text-white">Caricamento...</p>
+            </div>
+          </div>
+        )}
 
         {/* Navigation */}
         <div className="flex justify-center mb-8">
@@ -296,7 +451,9 @@ const BandManager = () => {
                 <div className="flex flex-wrap items-center gap-4">
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={(e) =>
+                      setSortBy(e.target.value as "title" | "artist" | "status")
+                    }
                     className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="title">Ordina per Titolo</option>
@@ -306,7 +463,15 @@ const BandManager = () => {
 
                   <select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
+                    onChange={(e) =>
+                      setFilterStatus(
+                        e.target.value as
+                          | "all"
+                          | "da_provare"
+                          | "in_prova"
+                          | "pronta"
+                      )
+                    }
                     className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="all">Tutti gli stati</option>
@@ -389,7 +554,7 @@ const BandManager = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-gray-300">
                             <div className="flex items-center text-purple-300">
                               <User className="w-4 h-4 mr-1" />
-                              {song.addedBy || "Anonimo"}
+                              {song.added_by || "Anonimo"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -467,7 +632,9 @@ const BandManager = () => {
                           <Edit className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteSetlist(setlist.id)}
+                          onClick={() =>
+                            handleDeleteSetlist({ setlistId: setlist.id })
+                          }
                           className="text-red-400 hover:text-red-300 p-2 transition-colors"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -600,9 +767,9 @@ const BandManager = () => {
                     </label>
                     <input
                       type="text"
-                      value={songForm.addedBy}
+                      value={songForm.added_by}
                       onChange={(e) =>
-                        setSongForm({ ...songForm, addedBy: e.target.value })
+                        setSongForm({ ...songForm, added_by: e.target.value })
                       }
                       className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       placeholder="Il tuo nome"
