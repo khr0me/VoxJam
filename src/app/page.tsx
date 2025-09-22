@@ -68,51 +68,19 @@ const BandManager = () => {
 
   // Check for active session
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (!session) {
         setShowLoginModal(true);
-      } else {
-        // Add user to band_members when they log in
-        const { error: bandMemberError } = await supabase
-          .from("band_members")
-          .upsert(
-            {
-              username: session.user.email || "",
-            },
-            {
-              onConflict: "username",
-            }
-          );
-
-        if (bandMemberError) {
-          console.error("Error adding user to band_members:", bandMemberError);
-        }
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (!session) {
         setShowLoginModal(true);
-      } else {
-        // Add user to band_members when they log in
-        const { error: bandMemberError } = await supabase
-          .from("band_members")
-          .upsert(
-            {
-              username: session.user.email || "",
-            },
-            {
-              onConflict: "username",
-            }
-          );
-
-        if (bandMemberError) {
-          console.error("Error adding user to band_members:", bandMemberError);
-        }
       }
     });
 
@@ -213,23 +181,6 @@ const BandManager = () => {
         if (songError) throw songError;
 
         if (data) {
-          // Add user to band_members if they're not already in it
-          const { error: bandMemberError } = await supabase
-            .from("band_members")
-            .upsert(
-              {
-                username: session?.user?.email || "",
-              },
-              {
-                onConflict: "username",
-              }
-            );
-
-          if (bandMemberError) {
-            console.error("Band member error:", bandMemberError);
-            // Continue even if band_members update fails
-          }
-
           setSongs([...songs, data]);
         }
       }
