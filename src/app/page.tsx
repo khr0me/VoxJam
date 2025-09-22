@@ -33,7 +33,6 @@ interface Setlist {
 
 const BandManager = () => {
   const [loading, setLoading] = useState(true);
-  const [initializing, setInitializing] = useState(true); // Add this new state
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -71,13 +70,11 @@ const BandManager = () => {
   useEffect(() => {
     const setupSession = async () => {
       try {
-        setInitializing(true);
         const {
           data: { session: currentSession },
           error,
         } = await supabase.auth.getSession();
         if (error) throw error;
-
         setSession(currentSession);
 
         if (currentSession?.user) {
@@ -105,7 +102,6 @@ const BandManager = () => {
             ...prev,
             added_by: currentSession.user?.email?.split("@")[0] || "Unknown",
           }));
-          setLoading(false);
         }
       } catch (error) {
         console.error("Setup error:", error);
@@ -113,10 +109,7 @@ const BandManager = () => {
           error instanceof Error ? error.message : "Failed to initialize"
         );
       } finally {
-        setInitializing(false);
-        if (!session) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
@@ -163,56 +156,11 @@ const BandManager = () => {
         setSongs([]);
         setSetlists([]);
         setSongForm((prev) => ({ ...prev, added_by: "Unknown" }));
-        setLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // ... rest of your methods remain the same ...
-
-  // Show initial loading screen while checking authentication
-  if (initializing) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex items-center justify-center">
-        <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
-          <p className="text-white">Inizializzazione...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show welcome page with login modal when not authenticated
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex flex-col items-center justify-center p-4">
-        <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold text-white mb-4">🎵 Vox Jam</h1>
-          <p className="text-xl text-gray-300">
-            La tua piattaforma per gestire canzoni e setlist
-          </p>
-        </div>
-
-        <div className="w-full max-w-md">
-          <LoginModal isOpen={true} onClose={() => {}} />
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading only during data operations for logged in users
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex items-center justify-center">
-        <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
-          <p className="text-white">Caricamento...</p>
-        </div>
-      </div>
-    );
-  }
 
   const resetSongForm = () => {
     setSongForm({
