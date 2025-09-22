@@ -477,8 +477,20 @@ const BandManager = () => {
         <div className="w-full max-w-md">
           <LoginModal
             isOpen={true}
-            onClose={() => setSession(null)} // Allow closing if needed
+            onClose={() => {}} // We don't want to do anything on close during initial login
           />
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading only after successful login during initial data fetch
+  if (loading && !songs.length && !setlists.length) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex items-center justify-center">
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+          <p className="text-white">Caricamento...</p>
         </div>
       </div>
     );
@@ -503,8 +515,8 @@ const BandManager = () => {
             </button>
           )}
         </div>
-        {/* Loading Indicator */}
-        {loading && session && (
+        {/* Loading Indicator - Only show when performing actions */}
+        {loading && session && songs.length > 0 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
