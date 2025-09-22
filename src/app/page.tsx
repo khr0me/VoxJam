@@ -87,9 +87,16 @@ const BandManager = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch initial data
+  // Fetch initial data only when logged in
   useEffect(() => {
     const fetchData = async () => {
+      // Only fetch data if we have a session
+      if (!session) {
+        setSongs([]);
+        setSetlists([]);
+        return;
+      }
+
       setLoading(true);
       try {
         // Fetch songs
@@ -118,7 +125,7 @@ const BandManager = () => {
     };
 
     fetchData();
-  }, []);
+  }, [session]); // Re-fetch when session changes
 
   const resetSongForm = () => {
     setSongForm({
@@ -460,9 +467,25 @@ const BandManager = () => {
             </button>
           )}
         </div>
-
+        {/* Not logged in message */}
+        {!session && !showLoginModal && (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Benvenuto in Vox Jam
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Effettua il login per gestire le tue canzoni e setlist
+            </p>
+            <button
+              onClick={() => setShowLoginModal(true)}
+              className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors shadow-lg"
+            >
+              Login
+            </button>
+          </div>
+        )}
         {/* Loading Indicator */}
-        {loading && (
+        {loading && session && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
@@ -470,35 +493,46 @@ const BandManager = () => {
             </div>
           </div>
         )}
+        {/* Main App Content - Only shown when logged in */}
+        {session && (
+          <>
+            {/* Navigation */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-gray-800 rounded-lg p-1 shadow-lg border border-gray-700">
+                <button
+                  onClick={() => setActiveTab("songs")}
+                  className={`px-6 py-3 rounded-md font-medium transition-colors ${
+                    activeTab === "songs"
+                      ? "bg-purple-600 text-white shadow-md"
+                      : "text-gray-300 hover:text-purple-400 hover:bg-gray-700"
+                  }`}
+                >
+                  <Music className="inline w-5 h-5 mr-2" />
+                  Canzoni
+                </button>
+                <button
+                  onClick={() => setActiveTab("setlists")}
+                  className={`px-6 py-3 rounded-md font-medium transition-colors ${
+                    activeTab === "setlists"
+                      ? "bg-purple-600 text-white shadow-md"
+                      : "text-gray-300 hover:text-purple-400 hover:bg-gray-700"
+                  }`}
+                >
+                  <List className="inline w-5 h-5 mr-2" />
+                  Setlist
+                </button>
+              </div>
+            </div>
 
-        {/* Navigation */}
-        <div className="flex justify-center mb-8">
-          <div className="bg-gray-800 rounded-lg p-1 shadow-lg border border-gray-700">
-            <button
-              onClick={() => setActiveTab("songs")}
-              className={`px-6 py-3 rounded-md font-medium transition-colors ${
-                activeTab === "songs"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-gray-300 hover:text-purple-400 hover:bg-gray-700"
-              }`}
-            >
-              <Music className="inline w-5 h-5 mr-2" />
-              Canzoni
-            </button>
-            <button
-              onClick={() => setActiveTab("setlists")}
-              className={`px-6 py-3 rounded-md font-medium transition-colors ${
-                activeTab === "setlists"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-gray-300 hover:text-purple-400 hover:bg-gray-700"
-              }`}
-            >
-              <List className="inline w-5 h-5 mr-2" />
-              Setlist
-            </button>
-          </div>
-        </div>
+            {/* Tab Content */}
+            {activeTab === "songs" && <div>{/* Songs content... */}</div>}
+            {activeTab === "setlists" && <div>{/* Setlists content... */}</div>}
 
+            {/* Forms */}
+            {showSongForm && <div>{/* Song form content... */}</div>}
+            {showSetlistForm && <div>{/* Setlist form content... */}</div>}
+          </>
+        )}{" "}
         {/* Tab Canzoni */}
         {activeTab === "songs" && (
           <div>
@@ -639,7 +673,6 @@ const BandManager = () => {
             </div>
           </div>
         )}
-
         {/* Tab Setlist */}
         {activeTab === "setlists" && (
           <div>
@@ -743,7 +776,6 @@ const BandManager = () => {
             </div>
           </div>
         )}
-
         {/* Modal Form Canzone */}
         {showSongForm && (
           <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/90 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
@@ -839,7 +871,6 @@ const BandManager = () => {
             </div>
           </div>
         )}
-
         {/* Modal Form Setlist */}
         {showSetlistForm && (
           <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/90 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
