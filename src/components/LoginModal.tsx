@@ -10,7 +10,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    email: "",
+    username: "",
     password: "",
   });
 
@@ -21,7 +21,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: form.email,
+        email: `${form.username}@band.voxjam`, // Using a fake email domain for username-based auth
         password: form.password,
       });
 
@@ -47,15 +47,15 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
-                Email
+                Username
               </label>
               <input
-                type="email"
+                type="text"
                 required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                placeholder="La tua email"
+                placeholder="Il tuo username"
               />
             </div>
 
