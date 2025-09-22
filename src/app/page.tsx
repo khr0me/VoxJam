@@ -166,13 +166,21 @@ const BandManager = () => {
         // Update band_members table to track song ownership
         const { error: bandMemberError } = await supabase
           .from("band_members")
-          .upsert({
-            username: currentUsername,
-            updated_at: new Date().toISOString(),
-            song_id: editingSong.id,
-          });
+          .upsert(
+            {
+              username: session?.user?.email || "",
+              updated_at: new Date().toISOString(),
+              song_id: editingSong.id,
+            },
+            {
+              onConflict: "username,song_id",
+            }
+          );
 
-        if (bandMemberError) throw bandMemberError;
+        if (bandMemberError) {
+          console.error("Band member error:", bandMemberError);
+          // Continue even if band_members update fails
+        }
 
         setSongs(
           songs.map((song) =>
@@ -196,13 +204,16 @@ const BandManager = () => {
           const { error: bandMemberError } = await supabase
             .from("band_members")
             .insert({
-              username: currentUsername,
+              username: session?.user?.email || "",
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
               song_id: data.id,
             });
 
-          if (bandMemberError) throw bandMemberError;
+          if (bandMemberError) {
+            console.error("Band member error:", bandMemberError);
+            // Continue even if band_members insert fails
+          }
 
           setSongs([...songs, data]);
         }
