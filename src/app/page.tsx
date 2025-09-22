@@ -43,7 +43,7 @@ const BandManager = () => {
   const [showSetlistForm, setShowSetlistForm] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
-  const [sortBy, setSortBy] = useState<"title" | "artist" | "status">("title");
+  const [sortBy, setSortBy] = useState<"status" | "title" | "artist">("title");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "da_provare" | "in_prova" | "pronta"
   >("all");
@@ -397,9 +397,9 @@ const BandManager = () => {
   const filteredAndSortedSongs = songs
     .filter((song) => filterStatus === "all" || song.status === filterStatus)
     .sort((a, b) => {
+      if (sortBy === "status") return a.status.localeCompare(b.status);
       if (sortBy === "title") return a.title.localeCompare(b.title);
       if (sortBy === "artist") return a.artist.localeCompare(b.artist);
-      if (sortBy === "status") return a.status.localeCompare(b.status);
       return 0;
     });
 
@@ -543,13 +543,13 @@ const BandManager = () => {
                   <select
                     value={sortBy}
                     onChange={(e) =>
-                      setSortBy(e.target.value as "title" | "artist" | "status")
+                      setSortBy(e.target.value as "status" | "title" | "artist")
                     }
                     className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
+                    <option value="status">Ordina per Stato</option>
                     <option value="title">Ordina per Titolo</option>
                     <option value="artist">Ordina per Artista</option>
-                    <option value="status">Ordina per Stato</option>
                   </select>
 
                   <select
