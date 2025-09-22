@@ -169,7 +169,6 @@ const BandManager = () => {
           .upsert(
             {
               username: session?.user?.email || "",
-              updated_at: new Date().toISOString(),
               song_id: editingSong.id,
             },
             {
@@ -205,8 +204,6 @@ const BandManager = () => {
             .from("band_members")
             .insert({
               username: session?.user?.email || "",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
               song_id: data.id,
             });
 
