@@ -70,12 +70,18 @@ const BandManager = () => {
   useEffect(() => {
     // Initial session check
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      // Don't automatically show login modal - let the welcome page handle that
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Session check error:", error);
+          return;
+        }
+        setSession(data.session);
+        setLoading(false);
+      } catch (error) {
+        console.error("Session check error:", error);
+        setLoading(false);
+      }
     };
 
     checkSession();
@@ -84,12 +90,12 @@ const BandManager = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", session ? "logged in" : "logged out");
       setSession(session);
       if (!session) {
         // Clear data when logging out
         setSongs([]);
         setSetlists([]);
-        setShowLoginModal(false); // Hide modal when logged out
       }
     });
 
@@ -471,7 +477,7 @@ const BandManager = () => {
         <div className="w-full max-w-md">
           <LoginModal
             isOpen={true}
-            onClose={() => {}} // Empty function since we always want to show the modal
+            onClose={() => setSession(null)} // Allow closing if needed
           />
         </div>
       </div>

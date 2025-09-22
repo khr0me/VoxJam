@@ -20,15 +20,31 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: `${form.username}@band.voxjam`, // Using a fake email domain for username-based auth
-        password: form.password,
-      });
+      const { data, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: `${form.username}@band.voxjam`,
+          password: form.password,
+        });
 
-      if (error) throw error;
-      onClose();
+      if (signInError) {
+        throw new Error(
+          "Username o password non validi. La registrazione è disabilitata."
+        );
+      }
+
+      if (data?.user) {
+        // Successfully logged in
+        window.location.reload(); // Force a full reload to ensure the session is properly established
+      } else {
+        throw new Error("Errore durante l'accesso. Riprova.");
+      }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Error during login");
+      console.error("Auth error:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Errore durante l'autenticazione"
+      );
     } finally {
       setLoading(false);
     }
@@ -96,7 +112,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 {loading && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                 )}
-                <span>Accedi</span>
+                <span>{loading ? "In corso..." : "Accedi"}</span>
               </button>
             </div>
           </form>
