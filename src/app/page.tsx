@@ -1,8 +1,18 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Music, List, Clock, User } from "lucide-react";
-
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Music,
+  List,
+  Clock,
+  User,
+  LogOut,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import LoginModal from "@/components/LoginModal";
+import { Session } from "@supabase/supabase-js";
 
 interface Song {
   id: string;
@@ -24,6 +34,8 @@ interface Setlist {
 const BandManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [songs, setSongs] = useState<Song[]>([]);
   const [setlists, setSetlists] = useState<Setlist[]>([]);
   const [activeTab, setActiveTab] = useState("songs");
@@ -53,6 +65,27 @@ const BandManager = () => {
     name: "",
     selectedSongs: [],
   });
+
+  // Check for active session
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        setShowLoginModal(true);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setShowLoginModal(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Fetch initial data
   useEffect(() => {
@@ -382,6 +415,16 @@ const BandManager = () => {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error logging out:", error);
+      alert("Error logging out");
+    }
+  };
+
   const toggleSongInSetlist = (songId: string): void => {
     if (setlistForm.selectedSongs.includes(songId)) {
       setSetlistForm({
@@ -400,9 +443,20 @@ const BandManager = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">🎵 Vox Jam</h1>
-          <p className="text-gray-300">Gestisci le tue canzoni e setlist</p>
+        <div className="flex justify-between items-start mb-8">
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold text-white mb-2">🎵 Vox Jam</h1>
+            <p className="text-gray-300">Gestisci le tue canzoni e setlist</p>
+          </div>
+          {session && (
+            <button
+              onClick={handleLogout}
+              className="bg-gray-800 text-gray-300 hover:text-white px-4 py-2 rounded-md transition-colors flex items-center space-x-2 border border-gray-700"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
+            </button>
+          )}
         </div>
 
         {/* Loading Indicator */}
@@ -910,6 +964,12 @@ const BandManager = () => {
           </div>
         )}
       </div>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => session && setShowLoginModal(false)}
+      />
     </div>
   );
 };
