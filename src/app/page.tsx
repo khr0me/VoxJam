@@ -43,7 +43,7 @@ const BandManager = () => {
   const [showSetlistForm, setShowSetlistForm] = useState(false);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
   const [editingSetlist, setEditingSetlist] = useState<Setlist | null>(null);
-  const [sortBy, setSortBy] = useState<"title" | "artist" | "status">("title");
+  const [sortBy, setSortBy] = useState<"status" | "title" | "artist">("status");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "da_provare" | "in_prova" | "pronta"
   >("all");
@@ -68,19 +68,28 @@ const BandManager = () => {
 
   // Check for active session
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Initial session check
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setSession(session);
-      if (!session) {
-        setShowLoginModal(true);
-      }
-    });
+      // Don't automatically show login modal - let the welcome page handle that
+      setLoading(false);
+    };
 
+    checkSession();
+
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (!session) {
-        setShowLoginModal(true);
+        // Clear data when logging out
+        setSongs([]);
+        setSetlists([]);
+        setShowLoginModal(false); // Hide modal when logged out
       }
     });
 
@@ -397,9 +406,9 @@ const BandManager = () => {
   const filteredAndSortedSongs = songs
     .filter((song) => filterStatus === "all" || song.status === filterStatus)
     .sort((a, b) => {
+      if (sortBy === "status") return a.status.localeCompare(b.status);
       if (sortBy === "title") return a.title.localeCompare(b.title);
       if (sortBy === "artist") return a.artist.localeCompare(b.artist);
-      if (sortBy === "status") return a.status.localeCompare(b.status);
       return 0;
     });
 
@@ -448,6 +457,27 @@ const BandManager = () => {
     }
   };
 
+  // Show welcome page with login modal when not authenticated
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex flex-col items-center justify-center p-4">
+        <div className="text-center mb-8">
+          <h1 className="text-6xl font-bold text-white mb-4">🎵 Vox Jam</h1>
+          <p className="text-xl text-gray-300">
+            La tua piattaforma per gestire canzoni e setlist
+          </p>
+        </div>
+
+        <div className="w-full max-w-md">
+          <LoginModal
+            isOpen={true}
+            onClose={() => {}} // Empty function since we always want to show the modal
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -467,23 +497,6 @@ const BandManager = () => {
             </button>
           )}
         </div>
-        {/* Not logged in message */}
-        {!session && !showLoginModal && (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-white mb-4">
-              Benvenuto in Vox Jam
-            </h2>
-            <p className="text-gray-300 mb-6">
-              Effettua il login per gestire le tue canzoni e setlist
-            </p>
-            <button
-              onClick={() => setShowLoginModal(true)}
-              className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors shadow-lg"
-            >
-              Login
-            </button>
-          </div>
-        )}
         {/* Loading Indicator */}
         {loading && session && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -543,13 +556,13 @@ const BandManager = () => {
                   <select
                     value={sortBy}
                     onChange={(e) =>
-                      setSortBy(e.target.value as "title" | "artist" | "status")
+                      setSortBy(e.target.value as "status" | "title" | "artist")
                     }
                     className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
+                    <option value="status">Ordina per Stato</option>
                     <option value="title">Ordina per Titolo</option>
                     <option value="artist">Ordina per Artista</option>
-                    <option value="status">Ordina per Stato</option>
                   </select>
 
                   <select
@@ -978,16 +991,10 @@ const BandManager = () => {
           </div>
         )}
       </div>
-
-      {/* Login Modal */}
-      <LoginModal
-        isOpen={showLoginModal}
-        onClose={() => session && setShowLoginModal(false)}
-      />
     </div>
   );
 };
 
 export default BandManager;
 
-/* created by khr0me */
+// State for login modal visibility
