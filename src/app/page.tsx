@@ -155,12 +155,24 @@ const BandManager = () => {
       const currentUsername = session?.user?.email?.split("@")[0] || "Unknown";
 
       if (editingSong) {
-        const { error } = await supabase
+        // Update song in songs table
+        const { error: songError } = await supabase
           .from("songs")
           .update({ ...songForm, added_by: currentUsername })
           .eq("id", editingSong.id);
 
-        if (error) throw error;
+        if (songError) throw songError;
+
+        // Update band_members table to track song ownership
+        const { error: bandMemberError } = await supabase
+          .from("band_members")
+          .upsert({
+            username: currentUsername,
+            updated_at: new Date().toISOString(),
+            song_id: editingSong.id,
+          });
+
+        if (bandMemberError) throw bandMemberError;
 
         setSongs(
           songs.map((song) =>
@@ -170,14 +182,28 @@ const BandManager = () => {
           )
         );
       } else {
-        const { data, error } = await supabase
+        // Insert new song
+        const { data, error: songError } = await supabase
           .from("songs")
           .insert([{ ...songForm, added_by: currentUsername }])
           .select()
           .single();
 
-        if (error) throw error;
+        if (songError) throw songError;
+
         if (data) {
+          // Update band_members table for the new song
+          const { error: bandMemberError } = await supabase
+            .from("band_members")
+            .insert({
+              username: currentUsername,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              song_id: data.id,
+            });
+
+          if (bandMemberError) throw bandMemberError;
+
           setSongs([...songs, data]);
         }
       }
