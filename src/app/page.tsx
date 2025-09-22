@@ -54,7 +54,7 @@ const BandManager = () => {
     artist: "",
     duration: "",
     status: "da_provare",
-    added_by: "",
+    added_by: session?.user?.email?.split("@")[0] || "Unknown",
   });
 
   // Stati del form setlist
@@ -126,7 +126,7 @@ const BandManager = () => {
       artist: "",
       duration: "",
       status: "da_provare",
-      added_by: "",
+      added_by: session?.user?.email?.split("@")[0] || "Unknown",
     });
     setEditingSong(null);
     setShowSongForm(false);
@@ -151,10 +151,13 @@ const BandManager = () => {
     }
 
     try {
+      // Make sure added_by is always the current user's username
+      const currentUsername = session?.user?.email?.split("@")[0] || "Unknown";
+
       if (editingSong) {
         const { error } = await supabase
           .from("songs")
-          .update(songForm)
+          .update({ ...songForm, added_by: currentUsername })
           .eq("id", editingSong.id);
 
         if (error) throw error;
@@ -169,7 +172,7 @@ const BandManager = () => {
       } else {
         const { data, error } = await supabase
           .from("songs")
-          .insert([songForm])
+          .insert([{ ...songForm, added_by: currentUsername }])
           .select()
           .single();
 
@@ -814,21 +817,6 @@ const BandManager = () => {
                       <option value="in_scaletta">In scaletta</option>
                       <option value="pronto">Pronto</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      Aggiunto da
-                    </label>
-                    <input
-                      type="text"
-                      value={songForm.added_by}
-                      onChange={(e) =>
-                        setSongForm({ ...songForm, added_by: e.target.value })
-                      }
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      placeholder="Il tuo nome"
-                    />
                   </div>
                 </div>
 
