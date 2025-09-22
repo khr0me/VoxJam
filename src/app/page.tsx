@@ -33,6 +33,7 @@ interface Setlist {
 
 const BandManager = () => {
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true); // Add this new state
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -70,50 +71,75 @@ const BandManager = () => {
   useEffect(() => {
     const setupSession = async () => {
       try {
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        setInitializing(true);
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
         if (error) throw error;
+
         setSession(currentSession);
-        
+
         if (currentSession?.user) {
           setLoading(true);
           // Fetch data in parallel for better performance
           const [songsResponse, setlistsResponse] = await Promise.all([
-            supabase.from('songs').select('*').order('created_at', { ascending: true }),
-            supabase.from('setlists').select('*').order('created_at', { ascending: true })
+            supabase
+              .from("songs")
+              .select("*")
+              .order("created_at", { ascending: true }),
+            supabase
+              .from("setlists")
+              .select("*")
+              .order("created_at", { ascending: true }),
           ]);
-          
+
           if (songsResponse.error) throw songsResponse.error;
           if (setlistsResponse.error) throw setlistsResponse.error;
-          
+
           setSongs(songsResponse.data || []);
           setSetlists(setlistsResponse.data || []);
-          
+
           // Update songForm with current user
-          setSongForm(prev => ({
+          setSongForm((prev) => ({
             ...prev,
-            added_by: currentSession.user?.email?.split("@")[0] || "Unknown"
+            added_by: currentSession.user?.email?.split("@")[0] || "Unknown",
           }));
+          setLoading(false);
         }
       } catch (error) {
-        console.error('Setup error:', error);
-        setError(error instanceof Error ? error.message : 'Failed to initialize');
+        console.error("Setup error:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to initialize"
+        );
       } finally {
-        setLoading(false);
+        setInitializing(false);
+        if (!session) {
+          setLoading(false);
+        }
       }
     };
 
     setupSession();
 
-    const { data: { subscription }} = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
-      
+
       if (session?.user?.id) {
         // Load data immediately when user logs in
         setLoading(true);
         try {
           const [songsResult, setlistsResult] = await Promise.all([
-            supabase.from("songs").select("*").order("created_at", { ascending: true }),
-            supabase.from("setlists").select("*").order("created_at", { ascending: true })
+            supabase
+              .from("songs")
+              .select("*")
+              .order("created_at", { ascending: true }),
+            supabase
+              .from("setlists")
+              .select("*")
+              .order("created_at", { ascending: true }),
           ]);
 
           if (songsResult.error) throw songsResult.error;
@@ -121,11 +147,11 @@ const BandManager = () => {
 
           setSongs(songsResult.data || []);
           setSetlists(setlistsResult.data || []);
-          
+
           // Update songForm with current user
-          setSongForm(prev => ({
+          setSongForm((prev) => ({
             ...prev,
-            added_by: session.user?.email?.split("@")[0] || "Unknown"
+            added_by: session.user?.email?.split("@")[0] || "Unknown",
           }));
         } catch (error) {
           console.error("Error loading data:", error);
@@ -136,12 +162,57 @@ const BandManager = () => {
         // Clear data when logging out
         setSongs([]);
         setSetlists([]);
-        setSongForm(prev => ({ ...prev, added_by: "Unknown" }));
+        setSongForm((prev) => ({ ...prev, added_by: "Unknown" }));
+        setLoading(false);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // ... rest of your methods remain the same ...
+
+  // Show initial loading screen while checking authentication
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex items-center justify-center">
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+          <p className="text-white">Inizializzazione...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show welcome page with login modal when not authenticated
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex flex-col items-center justify-center p-4">
+        <div className="text-center mb-8">
+          <h1 className="text-6xl font-bold text-white mb-4">🎵 Vox Jam</h1>
+          <p className="text-xl text-gray-300">
+            La tua piattaforma per gestire canzoni e setlist
+          </p>
+        </div>
+
+        <div className="w-full max-w-md">
+          <LoginModal isOpen={true} onClose={() => {}} />
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading only during data operations for logged in users
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black flex items-center justify-center">
+        <div className="bg-gray-800 rounded-lg p-4 flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
+          <p className="text-white">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
 
   const resetSongForm = () => {
     setSongForm({
@@ -224,7 +295,7 @@ const BandManager = () => {
       artist: song.artist,
       duration: song.duration,
       status: song.status,
-      added_by: song.added_by
+      added_by: song.added_by,
     });
     setEditingSong(song);
     setShowSongForm(true);
@@ -254,7 +325,10 @@ const BandManager = () => {
         // Update setlists in Supabase
         for (const setlist of updatedSetlists) {
           const originalSetlist = setlists.find((s) => s.id === setlist.id);
-          if (originalSetlist && setlist.songs.length !== originalSetlist.songs.length) {
+          if (
+            originalSetlist &&
+            setlist.songs.length !== originalSetlist.songs.length
+          ) {
             const { error: updateError } = await supabase
               .from("setlists")
               .update({ songs: setlist.songs })
@@ -500,7 +574,7 @@ const BandManager = () => {
             </button>
           )}
         </div>
-        
+
         {/* Loading Indicator - Only show when performing actions */}
         {loading && session && songs.length > 0 && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -510,7 +584,7 @@ const BandManager = () => {
             </div>
           </div>
         )}
-        
+
         {/* Main App Content - Only shown when logged in */}
         {session && (
           <>
@@ -552,7 +626,9 @@ const BandManager = () => {
                       <select
                         value={sortBy}
                         onChange={(e) =>
-                          setSortBy(e.target.value as "status" | "title" | "artist")
+                          setSortBy(
+                            e.target.value as "status" | "title" | "artist"
+                          )
                         }
                         className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       >
@@ -689,7 +765,9 @@ const BandManager = () => {
                 {/* Controlli Setlist */}
                 <div className="bg-gray-800 rounded-lg shadow-lg p-6 mb-6 border border-gray-700">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-white">Le tue Setlist</h2>
+                    <h2 className="text-xl font-bold text-white">
+                      Le tue Setlist
+                    </h2>
                     <button
                       onClick={() => setShowSetlistForm(true)}
                       className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-lg"
@@ -706,7 +784,9 @@ const BandManager = () => {
                     <div className="bg-gray-800 rounded-lg shadow-lg p-8 text-center text-gray-400 border border-gray-700">
                       <List className="w-16 h-16 mx-auto mb-4 opacity-50" />
                       <p className="text-lg">Nessuna setlist creata</p>
-                      <p>Crea la tua prima setlist per organizzare i concerti!</p>
+                      <p>
+                        Crea la tua prima setlist per organizzare i concerti!
+                      </p>
                     </div>
                   ) : (
                     setlists.map((setlist) => (
@@ -835,7 +915,10 @@ const BandManager = () => {
                           type="text"
                           value={songForm.duration}
                           onChange={(e) =>
-                            setSongForm({ ...songForm, duration: e.target.value })
+                            setSongForm({
+                              ...songForm,
+                              duration: e.target.value,
+                            })
                           }
                           className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                           placeholder="es. 3:45"
@@ -898,7 +981,10 @@ const BandManager = () => {
                         required
                         value={setlistForm.name}
                         onChange={(e) =>
-                          setSetlistForm({ ...setlistForm, name: e.target.value })
+                          setSetlistForm({
+                            ...setlistForm,
+                            name: e.target.value,
+                          })
                         }
                         className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                         placeholder="es. Concerto Centro Sociale"
@@ -962,8 +1048,8 @@ const BandManager = () => {
 
                     {setlistForm.selectedSongs.length > 0 && (
                       <div className="text-sm text-gray-300 bg-gray-700 p-3 rounded-md border border-gray-600 mb-4">
-                        Canzoni selezionate: {setlistForm.selectedSongs.length} •
-                        Durata totale:{" "}
+                        Canzoni selezionate: {setlistForm.selectedSongs.length}{" "}
+                        • Durata totale:{" "}
                         {calculateSetlistDuration(setlistForm.selectedSongs)}
                       </div>
                     )}
