@@ -34,7 +34,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
       if (data?.user) {
         // Successfully logged in
-        window.location.reload(); // Force a full reload to ensure the session is properly established
+        onClose(); // Let the parent component handle the session change
       } else {
         throw new Error("Errore durante l'accesso. Riprova.");
       }
