@@ -106,14 +106,27 @@ const BandManager = () => {
   useEffect(() => {
     const fetchData = async () => {
       // Only fetch data if we have a session
-      if (!session) {
+      if (!session?.user?.id) {
         setSongs([]);
         setSetlists([]);
         return;
       }
 
+      // Add a small delay to ensure session is fully established
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       setLoading(true);
       try {
+        // Check session is still valid
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+        if (!currentSession) {
+          setSongs([]);
+          setSetlists([]);
+          return;
+        }
+
         // Fetch songs
         const { data: songsData, error: songsError } = await supabase
           .from("songs")
