@@ -296,6 +296,10 @@ const BandManager = () => {
     }
   };
 
+  interface SetlistFormSubmitEvent {
+    preventDefault: () => void;
+  }
+
 <<<<<<< HEAD
 =======
   interface SetlistFormSubmitEvent {
@@ -1010,123 +1014,113 @@ const BandManager = () => {
               </div>
             )}
 
-            {/* Modal Form Setlist */}
-            {showSetlistForm && (
-              <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/90 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-                <div className="bg-gray-800/95 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-600">
-                  <form onSubmit={handleSaveSetlist} className="p-6">
-                    <h3 className="text-lg font-bold text-white mb-4">
-                      {editingSetlist ? "Modifica Setlist" : "Nuova Setlist"}
-                    </h3>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-300 mb-1">
-                        Nome Setlist *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={setlistForm.name}
-                        onChange={(e) =>
-                          setSetlistForm({
-                            ...setlistForm,
-                            name: e.target.value,
-                          })
-                        }
-                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        placeholder="es. Concerto Centro Sociale"
-                      />
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Seleziona Canzoni
-                      </label>
-                      <div className="bg-gray-700 border border-gray-600 rounded-md max-h-64 overflow-y-auto">
-                        {songs.length === 0 ? (
-                          <p className="p-4 text-gray-400 text-center">
-                            Aggiungi prima alcune canzoni
-                          </p>
-                        ) : (
-                          songs.map((song) => (
-                            <label
-                              key={song.id}
-                              className="flex items-center p-3 hover:bg-gray-600 cursor-pointer border-b border-gray-600 last:border-b-0 transition-colors"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={setlistForm.selectedSongs.includes(
-                                  song.id
-                                )}
-                                onChange={() => toggleSongInSetlist(song.id)}
-                                className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 bg-gray-600 border-gray-500 rounded"
-                              />
-                              <div className="flex-1">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <span className="font-medium text-white">
-                                      {song.title}
-                                    </span>
-                                    <span className="text-gray-300 ml-2">
-                                      - {song.artist}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <span
-                                      className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                                        song.status
-                                      )}`}
-                                    >
-                                      {getStatusText(song.status)}
-                                    </span>
-                                    {song.duration && (
-                                      <span className="text-xs text-gray-400">
-                                        {song.duration}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </label>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {setlistForm.selectedSongs.length > 0 && (
-                      <div className="text-sm text-gray-300 bg-gray-700 p-3 rounded-md border border-gray-600 mb-4">
-                        Canzoni selezionate: {setlistForm.selectedSongs.length}{" "}
-                        • Durata totale:{" "}
-                        {calculateSetlistDuration(setlistForm.selectedSongs)}
-                      </div>
-                    )}
-
-                    <div className="flex justify-end space-x-3 mt-6">
-                      <button
-                        type="button"
-                        onClick={resetSetlistForm}
-                        className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-                      >
-                        Annulla
-                      </button>
-                      <button
-                        type="submit"
-                        className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors shadow-lg"
-                      >
-                        {editingSetlist ? "Aggiorna" : "Crea"}
-                      </button>
-                    </div>
-                  </form>
+        {/* Modal Form Setlist */}
+        {showSetlistForm && (
+          <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 via-purple-900/90 to-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+            <div className="bg-gray-800/95 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-600">
+              <form onSubmit={handleSaveSetlist} className="p-6">
+                <h3 className="text-lg font-bold text-white mb-4">
+                  {editingSetlist ? "Modifica Setlist" : "Nuova Setlist"}
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                    Nome Setlist *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={setlistForm.name}
+                    onChange={(e) =>
+                      setSetlistForm({ ...setlistForm, name: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    placeholder="es. Concerto Centro Sociale"
+                  />
                 </div>
-              </div>
-            )}
-          </>
-=======
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Seleziona Canzoni
+                  </label>
+                  <div className="bg-gray-700 border border-gray-600 rounded-md max-h-64 overflow-y-auto">
+                    {songs.length === 0 ? (
+                      <p className="p-4 text-gray-400 text-center">
+                        Aggiungi prima alcune canzoni
+                      </p>
+                    ) : (
+                      songs.map((song) => (
+                        <label
+                          key={song.id}
+                          className="flex items-center p-3 hover:bg-gray-600 cursor-pointer border-b border-gray-600 last:border-b-0 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={setlistForm.selectedSongs.includes(
+                              song.id
+                            )}
+                            onChange={() => toggleSongInSetlist(song.id)}
+                            className="mr-3 h-4 w-4 text-purple-600 focus:ring-purple-500 bg-gray-600 border-gray-500 rounded"
+                          />
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <span className="font-medium text-white">
+                                  {song.title}
+                                </span>
+                                <span className="text-gray-300 ml-2">
+                                  - {song.artist}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span
+                                  className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
+                                    song.status
+                                  )}`}
+                                >
+                                  {getStatusText(song.status)}
+                                </span>
+                                {song.duration && (
+                                  <span className="text-xs text-gray-400">
+                                    {song.duration}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </label>
-                        ))
-                      )}
-                    </div>
+                          </div>
+                        </label>
+                      ))
+                    )}
                   </div>
+                </div>
+
+                {setlistForm.selectedSongs.length > 0 && (
+                  <div className="text-sm text-gray-300 bg-gray-700 p-3 rounded-md border border-gray-600">
+                    Canzoni selezionate: {setlistForm.selectedSongs.length} •
+                    Durata totale:{" "}
+                    {calculateSetlistDuration(setlistForm.selectedSongs)}
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={resetSetlistForm}
+                    className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors shadow-lg"
+                  >
+                    {editingSetlist ? "Aggiorna" : "Crea"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
 
                   {setlistForm.selectedSongs.length > 0 && (
                     <div className="text-sm text-gray-300 bg-gray-700 p-3 rounded-md border border-gray-600">
