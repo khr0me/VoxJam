@@ -68,19 +68,51 @@ const BandManager = () => {
 
   // Check for active session
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (!session) {
         setShowLoginModal(true);
+      } else {
+        // Add user to band_members when they log in
+        const { error: bandMemberError } = await supabase
+          .from("band_members")
+          .upsert(
+            {
+              username: session.user.email || "",
+            },
+            {
+              onConflict: "username",
+            }
+          );
+
+        if (bandMemberError) {
+          console.error("Error adding user to band_members:", bandMemberError);
+        }
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (!session) {
         setShowLoginModal(true);
+      } else {
+        // Add user to band_members when they log in
+        const { error: bandMemberError } = await supabase
+          .from("band_members")
+          .upsert(
+            {
+              username: session.user.email || "",
+            },
+            {
+              onConflict: "username",
+            }
+          );
+
+        if (bandMemberError) {
+          console.error("Error adding user to band_members:", bandMemberError);
+        }
       }
     });
 
@@ -163,24 +195,6 @@ const BandManager = () => {
 
         if (songError) throw songError;
 
-        // Update band_members table to track song ownership
-        const { error: bandMemberError } = await supabase
-          .from("band_members")
-          .upsert(
-            {
-              username: session?.user?.email || "",
-              song_id: editingSong.id,
-            },
-            {
-              onConflict: "username,song_id",
-            }
-          );
-
-        if (bandMemberError) {
-          console.error("Band member error:", bandMemberError);
-          // Continue even if band_members update fails
-        }
-
         setSongs(
           songs.map((song) =>
             song.id === editingSong.id
@@ -199,17 +213,21 @@ const BandManager = () => {
         if (songError) throw songError;
 
         if (data) {
-          // Update band_members table for the new song
+          // Add user to band_members if they're not already in it
           const { error: bandMemberError } = await supabase
             .from("band_members")
-            .insert({
-              username: session?.user?.email || "",
-              song_id: data.id,
-            });
+            .upsert(
+              {
+                username: session?.user?.email || "",
+              },
+              {
+                onConflict: "username",
+              }
+            );
 
           if (bandMemberError) {
             console.error("Band member error:", bandMemberError);
-            // Continue even if band_members insert fails
+            // Continue even if band_members update fails
           }
 
           setSongs([...songs, data]);
